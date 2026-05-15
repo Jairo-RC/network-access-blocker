@@ -33,8 +33,9 @@
 - [How It Works](#-how-it-works)
 - [Architecture](#-architecture)
 - [Requirements](#-requirements)
-- [Installation](#-installation)
-- [Usage](#-usage)
+- [Installation on Debian / Kali / Ubuntu](#-installation-on-debian--kali--ubuntu)
+- [Running the Application](#-running-the-application)
+- [Common Issues](#-common-issues)
 - [Project Structure](#-project-structure)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -102,105 +103,269 @@ sequenceDiagram
 
 ## 📋 Requirements
 
-### System Requirements
+Recommended system:
 
-| Requirement | Details |
-|---|---|
-| **Python** | 3.8 or higher |
-| **OS** | Windows 10/11 or Linux (Debian/Ubuntu/Arch) |
-| **Privileges** | Administrator (Windows) / Root (Linux) |
-| **Network** | Must be connected to the target LAN |
-
-### Windows-Specific
-
-- **[Npcap](https://nmap.org/npcap/)** — Required for raw packet capture. Download and install with **"WinPcap API-compatible Mode"** enabled during setup.
-
-### Python Dependencies
-
-| Package | Purpose |
-|---|---|
-| `scapy` | Packet crafting and ARP operations |
-| `customtkinter` | Modern themed GUI framework |
-| `netifaces` | Network interface and gateway detection |
+- Debian
+- Kali Linux
+- Ubuntu
+- Python 3
+- Virtual environment `.venv`
+- Administrator privileges for network operations
 
 ---
 
-## 🔧 Installation
+## 🔧 Installation on Debian / Kali / Ubuntu
 
-### 1. Clone the Repository
+First, install the base system dependencies:
 
 ```bash
+sudo apt update
+sudo apt install python3-full python3-venv python3-pip python3-tk net-tools iproute2 tcpdump arping libpcap-dev -y
+```
+
+Clone the repository:
+
+```bash
+cd ~/Apps
 git clone https://github.com/Jairo-RC/network-access-blocker.git
 cd network-access-blocker
 ```
 
-### 2. Install Python Dependencies
+---
+
+## 📦 Create virtual environment
+
+Do not install dependencies directly on the system's Python.
+
+Create a virtual environment:
+
+```bash
+python3 -m venv .venv
+```
+
+Activate it:
+
+```bash
+source .venv/bin/activate
+```
+
+Upgrade `pip`:
+
+```bash
+pip install --upgrade pip
+```
+
+Install the project dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Platform-Specific Setup
+---
 
-<details>
-<summary><strong>🪟 Windows</strong></summary>
+## 🛡️ Fix for externally-managed-environment error
 
-1. Download and install **[Npcap](https://nmap.org/npcap/)** (check "WinPcap API-compatible Mode" during installation).
-2. Open **PowerShell as Administrator**.
-3. Navigate to the project directory and run:
-
-```powershell
-python src/ip_block.py
-```
-
-</details>
-
-<details>
-<summary><strong>🐧 Linux</strong></summary>
-
-1. Ensure `libpcap` is installed:
+On recent versions of Debian, Kali, and Ubuntu, you might see this error:
 
 ```bash
-# Debian / Ubuntu
-sudo apt install libpcap-dev
-
-# Arch Linux
-sudo pacman -S libpcap
+error: externally-managed-environment
 ```
 
-2. Run with root privileges:
+This occurs because the system protects the global Python environment to prevent damage to system dependencies.
+
+The correct solution is to use a virtual environment:
 
 ```bash
-sudo python3 src/ip_block.py
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-</details>
+It is not recommended to use:
+
+```bash
+pip install --break-system-packages
+```
+
+as it can break system packages.
 
 ---
 
-## 🚀 Usage
+## 🔍 Verify dependencies
 
-### Quick Start
+To confirm that `customtkinter` is installed correctly:
 
 ```bash
-# Windows (Admin PowerShell)
-python src/ip_block.py
+.venv/bin/python -c "import customtkinter; print('customtkinter OK')"
+```
 
-# Linux
+If a `tkinter` related error appears, install:
+
+```bash
+sudo apt install python3-tk -y
+```
+
+---
+
+## 🚀 Running the application
+
+Run the app using the virtual environment's Python:
+
+```bash
+sudo .venv/bin/python src/ip_block.py
+```
+
+Do not use:
+
+```bash
 sudo python3 src/ip_block.py
 ```
 
-### Workflow
+That command uses the global system Python and can generate errors such as:
 
-1. **Launch** — The application opens and automatically scans your local network for active devices.
-2. **Select Target** — Choose a device from the dropdown list or manually enter an IP address.
-3. **Block** — Click **"⛔ Block Device"** to cut off the target's internet access.
-4. **Monitor** — The status indicator shows the current blocking state in real time.
-5. **Unblock** — Click **"✅ Restore Access"** to send corrective ARP packets and restore normal connectivity.
-6. **Re-scan** — Click **"🔄 Re-scan Network"** at any time to refresh the device list.
+```bash
+ModuleNotFoundError: No module named 'customtkinter'
+```
 
-> [!TIP]
-> If a device doesn't appear in the list, try waiting a few seconds and re-scanning. Some devices respond slowly to ARP requests.
+---
+
+## ⚙️ Create a global command
+
+You can create a command to start the app from any terminal.
+
+Create the file:
+
+```bash
+sudo nano /usr/local/bin/network-access-blocker
+```
+
+Paste this content:
+
+```bash
+#!/bin/bash
+cd /home/jrc/Apps/network-access-blocker || exit
+sudo /home/jrc/Apps/network-access-blocker/.venv/bin/python src/ip_block.py
+```
+
+Save with:
+
+```text
+CTRL + O
+ENTER
+CTRL + X
+```
+
+Assign permissions:
+
+```bash
+sudo chmod +x /usr/local/bin/network-access-blocker
+```
+
+Now you can start the application with:
+
+```bash
+network-access-blocker
+```
+
+---
+
+## 📅 Daily use
+
+Whenever you want to start the app:
+
+```bash
+network-access-blocker
+```
+
+Or manually:
+
+```bash
+cd ~/Apps/network-access-blocker
+source .venv/bin/activate
+sudo .venv/bin/python src/ip_block.py
+```
+
+---
+
+## 🐛 Common issues
+
+### Error: No module named 'customtkinter'
+
+Probable cause:
+
+The app was executed with the global Python:
+
+```bash
+sudo python3 src/ip_block.py
+```
+
+Solution:
+
+```bash
+sudo .venv/bin/python src/ip_block.py
+```
+
+---
+
+### Error: externally-managed-environment
+
+Probable cause:
+
+Attempted to install packages with `pip` directly to the system's Python.
+
+Solution:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+---
+
+### Error related to tkinter
+
+Install the system package:
+
+```bash
+sudo apt install python3-tk -y
+```
+
+---
+
+### The global command does not work
+
+Verify that the file exists:
+
+```bash
+ls -l /usr/local/bin/network-access-blocker
+```
+
+Verify permissions:
+
+```bash
+sudo chmod +x /usr/local/bin/network-access-blocker
+```
+
+Verify the project path:
+
+```bash
+ls /home/jrc/Apps/network-access-blocker
+```
+
+If your username or path is different, edit the file:
+
+```bash
+sudo nano /usr/local/bin/network-access-blocker
+```
+
+---
+
+## ⚖️ Responsible use
+
+This tool should only be used on networks you own, in laboratories, or in environments where you have authorization.
+
+It must not be used to affect networks, equipment, or users without permission.
 
 ---
 
